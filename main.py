@@ -28,13 +28,54 @@ BG = pygame.transform.scale(pygame.image.load(os.path.join("assets","Background"
  (WINDOW_WIDTH, WINDOW_HEIGHT))
 
 
+# abstract class - we are not going to use it, we will inherit from 
+class Ship:
+	def __init__(self, x, y, health=100):
+		self.x = x
+		self.y = y
+		self.health = health
+		self.ship_img = None
+		self.laser_img = None
+		self.lasers = []
+		self.cool_down_counter = 0
+
+
+	def draw(self, window):
+		window.blit(self.ship_img, (self.x, self.y))
+
+
+	def get_width(self):
+		return self.ship_img.get_width()
+
+	def get_height(self):
+		return self.ship_img.get_height()
+
+
+class Player(Ship):
+	def __init__(self, x, y, health=100):
+		# Use Ship Class initlaization method
+		super().__init__(x, y, health)
+		self.ship_img = PLAYER_SHIP
+		self.laser_img = PLAYER_LASER
+		# Detect perfect pixel colision using mask
+		self.mask = pygame.mask.from_surface(self.ship_img)
+		self.max_health = health
+
+
+
+
 def main():
 	run = True
 	Frames_per_seconds = 60
 	level = 1
 	lives = 5
+	player_velocity = 5
 
 	main_font = pygame.font.SysFont("comicsans", 50)
+
+
+
+	player = Player(300, 650)
 
 	clock = pygame.time.Clock()
 
@@ -46,6 +87,8 @@ def main():
 		level_label = main_font.render(f"Level: {level}", 1, (255,255,255))
 		WIN.blit(lives_label, (10,10))
 		WIN.blit(level_label, (WINDOW_WIDTH - level_label.get_width() -10, 10))
+
+		player.draw(WIN)
 
 		pygame.display.update()
 
@@ -59,5 +102,20 @@ def main():
 			if event.type == pygame.QUIT:
 				run = False
 
+		keys = pygame.key.get_pressed()
+		# returns dict of keys and values - weather are they pressed or not
+		# accessing keys, moving and restrictions 
+		if keys[pygame.K_a] and player.x - player_velocity > 0:
+			player.x -= player_velocity
+		if keys[pygame.K_d] and player.x + player_velocity + player.get_width() < WINDOW_WIDTH: 
+			player.x += player_velocity
+		if keys[pygame.K_w] and player.y - player_velocity > 0:
+			player.y -= player_velocity
+		if keys[pygame.K_s] and player.y + player_velocity + player.get_height() < WINDOW_HEIGHT:
+			player.y += player_velocity
+
+
 
 main()
+
+
