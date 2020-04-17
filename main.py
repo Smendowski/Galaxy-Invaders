@@ -62,18 +62,38 @@ class Player(Ship):
 		self.max_health = health
 
 
+class Enemy(Ship):
+	COLOR_DICT = {
+		"red" : (RED_SHIP, RED_LASER),
+		"green" : (GREEN_SHIP, GREEN_LASER),
+		"blue" :  (BLUE_SHIP, BLUE_LASER)
+	}
+
+	def __init__(self, x, y, color, health=100):
+		super().__init__(x,y,health)
+		self.ship_img, self.laser_img = self.COLOR_DICT[color]
+		self.mask = pygame.mask.from_surface(self.ship_img)
+
+	def move(self, vel):
+		self.y += vel
+
+
 
 
 def main():
 	run = True
 	Frames_per_seconds = 60
-	level = 1
+	main_font = pygame.font.SysFont("comicsans", 50)
+	level = 0
 	lives = 5
+
 	player_velocity = 5
 
-	main_font = pygame.font.SysFont("comicsans", 50)
-
-
+	
+	# Enemies 
+	enemies = []
+	wave_length = 5
+	enemy_velocity = 1
 
 	player = Player(300, 650)
 
@@ -88,19 +108,32 @@ def main():
 		WIN.blit(lives_label, (10,10))
 		WIN.blit(level_label, (WINDOW_WIDTH - level_label.get_width() -10, 10))
 
+		# Draw all enemies
+		for enemy in enemies:
+			enemy.draw(WIN)
+
 		player.draw(WIN)
 
+		# Update after drawing
 		pygame.display.update()
 
 
 	while run:
 		clock.tick(Frames_per_seconds)
-		redraw_window()
 
-		# Events - player interaction
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
-				run = False
+		# All enemies has been killed
+		if len(enemies) == 0:
+			level += 1
+			wave_length += 5
+			for i in range(wave_length):
+				enemy = Enemy(random.randrange(50, WINDOW_WIDTH-100),
+					random.randrange(-1500, -100),
+					random.choice(["red","blue","green"]))
+				enemies.append(enemy)
+
+		
+
+		
 
 		keys = pygame.key.get_pressed()
 		# returns dict of keys and values - weather are they pressed or not
@@ -114,6 +147,17 @@ def main():
 		if keys[pygame.K_s] and player.y + player_velocity + player.get_height() < WINDOW_HEIGHT:
 			player.y += player_velocity
 
+		# QUIT Player Interaction
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				run = False
+
+
+		# Moving enemies
+		for enemy in enemies:
+			enemy.move(enemy_velocity)
+
+		redraw_window()
 
 
 main()
