@@ -27,9 +27,29 @@ PLAYER_LASER = pygame.image.load(os.path.join("assets", "Lasers","laser_yellow.p
 BG = pygame.transform.scale(pygame.image.load(os.path.join("assets","Background","Background-black.png")),
  (WINDOW_WIDTH, WINDOW_HEIGHT))
 
+class Laser:
+	def __init__(self, x, y, img):
+		self.x = x
+		self.y = y
+		self.img = img
+		self.mask = pygame.mask.from_surface(self.img)
+
+	def draw(self, window):
+		window.blit(self.img, (self.x, self.y))
+
+	def move(self, vel):
+		self.y += vel
+
+	def off_screen(self, height):
+		return not(self.y <= height and self.y >= 0)
+
+	def collision(self, obj):
+		return collide(self, obj)
 
 # abstract class - we are not going to use it, we will inherit from 
 class Ship:
+	COOLDOWN = 30
+
 	def __init__(self, x, y, health=100):
 		self.x = x
 		self.y = y
@@ -42,6 +62,30 @@ class Ship:
 
 	def draw(self, window):
 		window.blit(self.ship_img, (self.x, self.y))
+		for laser in self.lasers:
+			laser.draw(window)
+
+	def move_lasers(self, vel, obj):
+		self.cooldown()
+		for laser in self.lasers:
+			laser.move(vel)
+			if laser.off_screen(WINDOW_HEIGHT):
+				self.lasers.remove(laser)
+			elif laser.collision(obj):
+				obj.health -= 10
+				self.lasers.remove(laser)
+
+	def cooldown(self):
+		if self.cool_down_counter >= self.COOLDOWN:
+			self.cool_down_counter = 0
+		elif self.cool_down_counter > 0:
+			self.cool_down_counter += 1
+
+	def shoot(self):
+		if self.cool_down_counter == 0:
+			laser = Laser(self.x, self.y, self.laser_img)
+			self.lasers.append(laser)
+			self.cool_down_counter = 1
 
 
 	def get_width(self):
@@ -62,6 +106,29 @@ class Player(Ship):
 		self.max_health = health
 
 
+	def move_lasers(self, vel, objs):
+		self.cooldown()
+		for laser in self.lasers:
+			laser.move(vel)
+			if laser.off_screen(WINDOW_HEIGHT):
+				self.lasers.remove(laser)
+			else:
+				for obj in objs:
+					if laser.collision(obj):
+						objs.remove(obj)
+						if laser in self.lasers:
+							self.lasers.remove(laser)
+
+	def draw(self, window):
+		super().draw(window)
+		self.healthbar(window)
+
+	def healthbar(self, window):
+		pygame.draw.rect(window, (255,0,0), (self.x, self.y + self.ship_img.get_height() + 10, self.ship_img.get_width(), 10))
+		pygame.draw.rect(window, (0,255,0), (self.x, self.y + self.ship_img.get_height() + 10, self.ship_img.get_width() * (self.health/self.max_health), 10))
+
+
+
 class Enemy(Ship):
 	COLOR_DICT = {
 		"red" : (RED_SHIP, RED_LASER),
@@ -77,13 +144,25 @@ class Enemy(Ship):
 	def move(self, vel):
 		self.y += vel
 
+	def shoot(self):
+		if self.cool_down_counter == 0:
+			laser = Laser(self.x-20, self.y, self.laser_img)
+			self.lasers.append(laser)
+			self.cool_down_counter = 1
 
 
+def collide(obj1, obj2):
+	offset_x = obj2.x - obj1.x
+	offset_y = obj2.y - obj1.y
+	return obj1.mask.overlap(obj2.mask, (offset_x, offset_y)) != None            
 
 def main():
 	run = True
+	lost = False
+	lost_count = 0
 	Frames_per_seconds = 60
 	main_font = pygame.font.SysFont("comicsans", 50)
+	lost_font = pygame.font.SysFont("comicsans", 60)
 	level = 0
 	lives = 5
 
@@ -94,6 +173,7 @@ def main():
 	enemies = []
 	wave_length = 5
 	enemy_velocity = 1
+	laser_velocity = 4
 
 	player = Player(300, 650)
 
@@ -114,21 +194,36 @@ def main():
 
 		player.draw(WIN)
 
+		if lost:
+			lost_label = lost_font.render("You Lost!!", 1, (255,255,255))
+			WIN.blit(lost_label, (WINDOW_WIDTH/2 - lost_label.get_width()/2, 350))
+
 		# Update after drawing
 		pygame.display.update()
 
 
 	while run:
 		clock.tick(Frames_per_seconds)
+		redraw_window()
+
+		if lives <= 0 or player.health <= 0:
+			lost = True
+			lost_count += 1
+
+		if lost:
+			if lost_count >Frames_per_seconds * 3:
+				run = False
+			else:
+				continue
 
 		# All enemies has been killed
 		if len(enemies) == 0:
 			level += 1
 			wave_length += 5
 			for i in range(wave_length):
-				enemy = Enemy(random.randrange(50, WINDOW_WIDTH-100),
-					random.randrange(-1500, -100),
-					random.choice(["red","blue","green"]))
+				enemy = Enemy(random.randrange(50, WINDOW_WIDTH-100), 
+					random.randrange(-1500, -100), 
+					random.choice(["red", "blue", "green"]))
 				enemies.append(enemy)
 
 		
@@ -146,6 +241,8 @@ def main():
 			player.y -= player_velocity
 		if keys[pygame.K_s] and player.y + player_velocity + player.get_height() < WINDOW_HEIGHT:
 			player.y += player_velocity
+		if keys[pygame.K_SPACE]:
+			player.shoot()
 
 		# QUIT Player Interaction
 		for event in pygame.event.get():
@@ -153,13 +250,40 @@ def main():
 				run = False
 
 
-		# Moving enemies
-		for enemy in enemies:
+		for enemy in enemies[:]:
 			enemy.move(enemy_velocity)
+			enemy.move_lasers(laser_velocity, player)
 
-		redraw_window()
+			if random.randrange(0, 2*60) == 1:
+				enemy.shoot()
+
+			if collide(enemy, player):
+				player.health -= 10
+				enemies.remove(enemy)
+			elif enemy.y + enemy.get_height() > WINDOW_HEIGHT:
+				lives -= 1
+				enemies.remove(enemy)
+
+		player.move_lasers(-laser_velocity, enemies)
+
+		
+
+def main_menu():
+	title_font = pygame.font.SysFont("comicsans", 70)
+	run = True
+	while run:
+		WIN.blit(BG, (0,0))
+		title_label = title_font.render("Press the mouse to begin...", 1, (255,255,255))
+		WIN.blit(title_label, (WINDOW_WIDTH/2 - title_label.get_width()/2, 350))
+		pygame.display.update()
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				run = False
+			if event.type == pygame.MOUSEBUTTONDOWN:
+				main()
+	pygame.quit()
 
 
-main()
+main_menu()
 
 
