@@ -46,34 +46,10 @@ class Laser:
 	def collision(self, obj):
 		return collide(self, obj)
 
-class Laser:
-	def __init__(self, x,y, img):
-		self.x = x
-		self.y = y
-		self.img = img
-		self.mask = pygame.mask.from_surface(self.img)
-
-	def draw(self, window):
-		window.blit(self.img, (self.x, self.y))
-
-	def move(self, vel):
-		self.y += vel
-
-	def off_screen(self, height):
-		return not (self.y <= WINDOW_HEIGHT and self.y >= 0)
-
-	def collision(self, obj):
-		return collide(self, obj)
-
-
-
 # abstract class - we are not going to use it, we will inherit from 
 class Ship:
 	COOLDOWN = 30
-<<<<<<< HEAD
 
-=======
->>>>>>> b2321442999f0398b8419f701f9801597ede013e
 	def __init__(self, x, y, health=100):
 		self.x = x
 		self.y = y
@@ -89,7 +65,6 @@ class Ship:
 		for laser in self.lasers:
 			laser.draw(window)
 
-<<<<<<< HEAD
 	def move_lasers(self, vel, obj):
 		self.cooldown()
 		for laser in self.lasers:
@@ -101,23 +76,6 @@ class Ship:
 				self.lasers.remove(laser)
 
 	def cooldown(self):
-=======
-	def move_lasers(self, velocity, objs):
-		self.cooldown()
-		for laser in self.lasers:
-			laser.move(velocity)
-			if laser.off_screen(WINDOW_HEIGHT):
-				self.lasers.remove(laser)
-			else:
-				for obj in objs:
-					if laser.collision(obj):
-						objs.remove(obj)
-						self.laser.remove(laser)
-
-
-	def cooldown(self):
-		# To Not shoot so fast
->>>>>>> b2321442999f0398b8419f701f9801597ede013e
 		if self.cool_down_counter >= self.COOLDOWN:
 			self.cool_down_counter = 0
 		elif self.cool_down_counter > 0:
@@ -127,12 +85,8 @@ class Ship:
 		if self.cool_down_counter == 0:
 			laser = Laser(self.x, self.y, self.laser_img)
 			self.lasers.append(laser)
-<<<<<<< HEAD
 			self.cool_down_counter = 1
 
-=======
-			self.cool_down_counter = 1	
->>>>>>> b2321442999f0398b8419f701f9801597ede013e
 
 	def get_width(self):
 		return self.ship_img.get_width()
@@ -150,18 +104,6 @@ class Player(Ship):
 		# Detect perfect pixel colision using mask
 		self.mask = pygame.mask.from_surface(self.ship_img)
 		self.max_health = health
-
-	def move_laswe(self, vel, objs):
-		self.cooldown()
-		for laser in self.lasers:
-			laser.move(vel)
-			if lasser.off_screen(WINDOW_HEIGHT):
-				self.lasers.remove(lase)
-			else:
-				for obj in objs:
-					if laser.collision(obj):
-						objs.remove(obj)
-						self.lasers.remove(laser)
 
 
 	def move_lasers(self, vel, objs):
@@ -208,10 +150,6 @@ class Enemy(Ship):
 			self.lasers.append(laser)
 			self.cool_down_counter = 1
 
-def collide(obj1, obj2):
-    offset_x = obj2.x - obj1.x
-    offset_y = obj2.y - obj1.y
-    return obj1.mask.overlap(obj2.mask, (offset_x, offset_y)) != None
 
 def collide(obj1, obj2):
 	offset_x = obj2.x - obj1.x
@@ -227,11 +165,8 @@ def main():
 	lost_font = pygame.font.SysFont("comicsans", 60)
 	level = 0
 	lives = 5
-	lost = False
-	lost_count = 0
 
 	player_velocity = 5
-
 
 	
 	# Enemies 
@@ -259,19 +194,10 @@ def main():
 
 		player.draw(WIN)
 
-<<<<<<< HEAD
-=======
-
->>>>>>> b2321442999f0398b8419f701f9801597ede013e
 		if lost:
 			lost_label = lost_font.render("You Lost!!", 1, (255,255,255))
 			WIN.blit(lost_label, (WINDOW_WIDTH/2 - lost_label.get_width()/2, 350))
 
-<<<<<<< HEAD
-=======
-
-
->>>>>>> b2321442999f0398b8419f701f9801597ede013e
 		# Update after drawing
 		pygame.display.update()
 
@@ -285,17 +211,9 @@ def main():
 			lost_count += 1
 
 		if lost:
-<<<<<<< HEAD
 			if lost_count >Frames_per_seconds * 3:
 				run = False
 			else:
-=======
-			# Set the time for showing lost message
-			if lost_count > Frames_per_seconds * 3:
-				run = False
-			else:
-				# Go to next iteration ignoring rest of code
->>>>>>> b2321442999f0398b8419f701f9801597ede013e
 				continue
 
 		# All enemies has been killed
@@ -335,7 +253,6 @@ def main():
 		for enemy in enemies[:]:
 			enemy.move(enemy_velocity)
 			enemy.move_lasers(laser_velocity, player)
-<<<<<<< HEAD
 
 			if random.randrange(0, 2*60) == 1:
 				enemy.shoot()
@@ -368,16 +285,5 @@ def main_menu():
 
 
 main_menu()
-=======
-			# If enemy has crossed bottom of the window:
-			if enemy.y + enemy.get_height() > WINDOW_HEIGHT:
-				lives -= 1
-				enemies.remove(enemy)
-
-		player.move_lasers(-laser_velocity, enemies)
-
-		
->>>>>>> b2321442999f0398b8419f701f9801597ede013e
 
 
-main()
